@@ -1,0 +1,38 @@
+{
+    "name": "hxm/database-system-config",
+    "version": "0.1.0",
+    "description": "save system config value on database",
+    "keywords": [
+        "database-system-config",
+        "laravel",
+        "hxm"
+    ],
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Mai Xuân Hoàn",
+            "email": "hoanxuanmai@gmail.com",
+            "role": "Creator & Designer",
+            "homepage": "https://hoanxuanmai.github.io"
+        }
+    ],
+    "require": {
+        "php": "^7.0|^8.0",
+        "laravel/framework": "^7.0|^8.0|^9.0|^10.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "HXM\\DatabaseSystemConfig\\": "src/"
+        },
+        "classmap": []
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "HXM\\DatabaseSystemConfig\\Providers\\DatabaseSystemConfigServiceProvider"
+            ]
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}

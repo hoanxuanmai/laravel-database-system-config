@@ -64,6 +64,4 @@ return [
 ```
 
 ## Please let me know if there is any problem or need any help. Your contribution is valuable to make the package better.
-
-
-Please note currently for Laravel 7+ until tested and verified in lower versions. 
+ 

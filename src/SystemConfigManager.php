@@ -3,6 +3,7 @@
 namespace HXM\DatabaseSystemConfig;
 
 use HXM\DatabaseSystemConfig\Models\SystemConfig;
+use HXM\DatabaseSystemConfig\Models\SystemConfigValue;
 use Illuminate\Support\Facades\Cache;
 
 class SystemConfigManager
@@ -12,7 +13,7 @@ class SystemConfigManager
      * @param string $key
      * @return mixed
      */
-    function get(string $key, $default = null, string $indexDefault = 'default')
+    public function get(string $key, $default = null, string $indexDefault = 'default')
     {
         [$key, $index] = $this->parseGroupIndex($key);
         $data = $this->_getCacheData($key);
@@ -22,13 +23,13 @@ class SystemConfigManager
         return data_get($data, $index, $default);
     }
 
-    function forget(string $group)
+    public function forget(string $group)
     {
         [$group, $index] = $this->parseGroupIndex($group);
         if (is_null($index)) {
-            SystemConfig::withoutGlobalScopes()->where('group', $group)->delete();
+            SystemConfig::where('group', $group)->delete();
         } else {
-            SystemConfig::withoutGlobalScopes()->where('group', $group)->where('index', $index)->delete();
+            SystemConfig::where('group', $group)->where('index', $index)->delete();
         }
         $this->_clearCache($group);
         return $this->all();
@@ -40,7 +41,7 @@ class SystemConfigManager
      * @param mixed $value
      * @return void
      */
-    function set(string $keyInput, $value): array
+    public function set(string $keyInput, $value): array
     {
         [$group, $index] = $this->parseGroupIndex($keyInput);
         if (is_null($index) && is_array($value)) {
@@ -54,20 +55,20 @@ class SystemConfigManager
         return $this->get($group);
     }
 
-    function all(): array
+    public function all(): array
     {
         return collect($this->groups())->mapWithKeys(function ($dt) {
             return [$dt => $this->get($dt)];
         })->toArray();
     }
 
-    function groups($force = false): array
+    public function groups($force = false): array
     {
         if ($force) {
             $this->_clearCache();
         }
         return Cache::rememberForever(static::class, function () {
-            return SystemConfig::withoutGlobalScopes()->select('group')->distinct()->toBase()->get()->map(function ($dt) {
+            return SystemConfig::select('group')->distinct()->toBase()->get()->map(function ($dt) {
                 return $dt->group;
             })->toArray();
         });
@@ -75,12 +76,7 @@ class SystemConfigManager
 
     protected function _saveToDatabase(string $group, string $index, $value)
     {
-        return tap(SystemConfig::firstOrNew(['group' => $group, 'index' => $index]), function ($instance) use ($value) {
-
-            $instance->value = $value;
-
-            $instance->save();
-        });
+        return SystemConfig::updateOrCreate(['group' => $group, 'index' => $index], ['value' => $value]);
     }
 
 
@@ -102,13 +98,22 @@ class SystemConfigManager
 
             $data = [];
 
-            SystemConfig::where('group', $group)
+            $systemConfigs = SystemConfig::where('group', $group)
                 ->oldest('updated_at')
-                ->get()
-                ->each(function (SystemConfig $model) use (&$data) {
-                    data_set($data, $model->index, $model->value);
-                });
+                ->toBase()
+                ->get();
+            foreach ($systemConfigs->groupBy('value_type') as $type => $collection) {
+                $systemConfigValues = (new SystemConfigValue())
+                ->setTable("system_config_{$type}_values")
+                ->whereIn('parent_id', $collection->pluck('id'))
+                ->toBase()
+                ->get();
 
+                $collection->each(function ($model) use (&$data, $systemConfigValues) {
+                    $valueInstance = $systemConfigValues->firstWhere('parent_id', $model->id);
+                    data_set( $data, $model->index, $valueInstance->value ?? null);
+                });
+            }
             return $data;
         });
     }

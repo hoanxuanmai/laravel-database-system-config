@@ -13,9 +13,10 @@ use Illuminate\Support\Str;
 class SystemConfig extends Model
 {
     const VALUE_TABLES = ['int', 'bool', 'string', 'datetime', 'float', 'text'];
-    protected $fillable = ['group', 'index', 'value_type', 'description'];
+    protected $fillable = ['group', 'index', 'value_type', 'description', 'value'];
     protected $rawValue;
 
+    protected $cacheValueInstance = [];
     function getValueAttribute()
     {
         return $this->rawValue;
@@ -27,20 +28,26 @@ class SystemConfig extends Model
         $this->rawValue = $value;
     }
 
-    function valueInstance()
+    public function valueInstance(string $value_type = null)
     {
+        $instanceType = $value_type ?? $this->attributes['value_type'] ?? '';
+        if (isset($this->cacheValueInstance[$instanceType])) {
+            return $this->cacheValueInstance[$instanceType];
+        }
+
         $instance = $this->newRelatedInstance(SystemConfigValue::class);
-        $instance->setTable(self::getValueTableDataByType($this->attributes['value_type'] ?? '')[0]);
-        isset($this->attributes['value_type']) && $instance->mergeCasts(['value' =>  $this->attributes['value_type']]);
+
+        $instance->setTable(self::getValueTableDataByType($instanceType)[0]);
+        empty($instanceType) || $instance->mergeCasts(['value' =>  $instanceType]);
 
         $foreignKey = 'parent_id';
 
         $localKey = $this->getKeyName();
 
-        return $this->newHasOne($instance->newQuery(), $this, $instance->getTable() . '.' . $foreignKey, $localKey);
+        return $this->cacheValueInstance[$instanceType] = $this->newHasOne($instance->newQuery(), $this, $instance->getTable() . '.' . $foreignKey, $localKey);
     }
 
-    static function getValueTableDataByType(string $dataType): array
+    public static function getValueTableDataByType(string $dataType): array
     {
         $type = 'text';
         if (isset(static::VALUE_TABLES[$dataType]) || in_array($dataType, static::VALUE_TABLES))
@@ -54,21 +61,22 @@ class SystemConfig extends Model
 
     protected function parseValueType($value): string
     {
-        if (is_null($value)) {
+        if ($value === null) {
             return 'null';
         }
         if (is_bool($value)) {
             return 'bool';
         }
-        if (is_integer($value)) {
+        if (is_float($value) || is_double($value)) {
+            return 'float';
+        }
+        if (is_numeric($value) && is_int($value)) {
             return 'int';
         }
         if (is_string($value) && Str::length($value) <= Schema::getFacadeRoot()::$defaultStringLength) {
             return 'string';
         }
-        if (is_float($value)) {
-            return 'float';
-        }
+
         if (is_array($value)) {
             return 'array';
         }
@@ -84,17 +92,8 @@ class SystemConfig extends Model
         return 'text';
     }
 
-    static function booted()
+    public static function booted()
     {
-        static::addGlobalScope('with-value', function (Builder $builder) {
-            $model = $builder->getModel();
-            $builder->select($model->qualifyColumn('*'));
-            foreach (static::VALUE_TABLES as $type) {
-                [$table, $aliasColumValue] = self::getValueTableDataByType($type);
-                $builder->leftJoin($table, "{$table}.parent_id", '=', $model->qualifyColumn('id'));
-                $builder->addSelect("$table.value as {$aliasColumValue}");
-            }
-        });
 
         static::saved(function (self $model) {
 
@@ -103,24 +102,13 @@ class SystemConfig extends Model
                 $model->setRelation('valueInstance', null);
                 return;
             }
-
-            $valueInstance = $model->valueInstance()->make();
-
-            if (!$model->wasRecentlyCreated) {
-                $valueInstance = $valueInstance->firstOrNew([$valueInstance->getKeyName() => $valueInstance->getKey()]);
+            if ($model->wasChanged('value_type')){
+                $model->valueInstance($model->getRawOriginal('value_type'))->delete();
             }
+            $relation = $model->valueInstance();
 
-            $valueInstance->fill(['value' => $model->rawValue]);
+            $valueInstance = $model->valueInstance()->updateOrCreate([$relation->getForeignKeyName() => $model->getKey()],['value' => $model->rawValue]);
 
-            $valueInstance->save();
-
-            $model->setRelation('valueInstance', $valueInstance);
-        });
-
-        static::retrieved(function (self $model) {
-            $valueInstance = $model->valueInstance()->make(['value' => $model->attributes[self::getValueTableDataByType($model->attributes['value_type'] ?? '')[1]] ?? null]);
-            $valueInstance->exists = true;
-            $model->rawValue = $valueInstance->value;
             $model->setRelation('valueInstance', $valueInstance);
         });
     }

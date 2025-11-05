@@ -1,6 +1,6 @@
 {
     "name": "hxm/database-system-config",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "description": "save system config value on database",
     "keywords": [
         "database-system-config",
@@ -18,7 +18,7 @@
     ],
     "require": {
         "php": "^7.0|^8.0",
-        "laravel/framework": "^7.0|^8.0|^9.0|^10.0"
+        "laravel/framework": "^7.0|^8.0|^9.0|^10.0|^11.0|^12.0|^13.0"
     },
     "autoload": {
         "psr-4": {
@@ -30,7 +30,10 @@
         "laravel": {
             "providers": [
                 "HXM\\DatabaseSystemConfig\\Providers\\DatabaseSystemConfigServiceProvider"
-            ]
+            ],
+            "aliases": {
+                "DatabaseSystemConfig": "HXM\\DatabaseSystemConfig\\Facades\\DatabaseSystemConfig"
+            }
         }
     },
     "minimum-stability": "dev",

@@ -26,34 +26,34 @@ class InstallDatabaseSystemConfig extends Migration
         });
 
         Schema::create('system_config_bool_values', function (Blueprint $table) {
-            $table->unsignedBigInteger('parent_id');
+            $table->unsignedBigInteger('parent_id')->primary()->unique();
             $table->boolean('value');
             $table->foreign('parent_id')->references('id')->on('system_configs')->cascadeOnDelete();
         });
 
         Schema::create('system_config_int_values', function (Blueprint $table) {
-            $table->unsignedBigInteger('parent_id');
+            $table->unsignedBigInteger('parent_id')->primary()->unique();
             $table->bigInteger('value');
             $table->foreign('parent_id')->references('id')->on('system_configs')->cascadeOnDelete();
         });
 
         Schema::create('system_config_float_values', function (Blueprint $table) {
-            $table->unsignedBigInteger('parent_id');
-            $table->float('value');
+            $table->unsignedBigInteger('parent_id')->primary()->unique();
+            $table->double('value');
             $table->foreign('parent_id')->references('id')->on('system_configs')->cascadeOnDelete();
         });
         Schema::create('system_config_datetime_values', function (Blueprint $table) {
-            $table->unsignedBigInteger('parent_id');
+            $table->unsignedBigInteger('parent_id')->primary()->unique();
             $table->dateTime('value');
             $table->foreign('parent_id')->references('id')->on('system_configs')->cascadeOnDelete();
         });
         Schema::create('system_config_string_values', function (Blueprint $table) {
-            $table->unsignedBigInteger('parent_id');
+            $table->unsignedBigInteger('parent_id')->primary()->unique();
             $table->string('value');
             $table->foreign('parent_id')->references('id')->on('system_configs')->cascadeOnDelete();
         });
         Schema::create('system_config_text_values', function (Blueprint $table) {
-            $table->unsignedBigInteger('parent_id');
+            $table->unsignedBigInteger('parent_id')->primary()->unique();
             $table->text('value');
             $table->foreign('parent_id')->references('id')->on('system_configs')->cascadeOnDelete();
         });

@@ -1,6 +1,5 @@
 {
     "name": "hxm/database-system-config",
-    "version": "0.2.0",
     "description": "save system config value on database",
     "keywords": [
         "database-system-config",

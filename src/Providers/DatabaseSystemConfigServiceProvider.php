@@ -37,8 +37,8 @@ class DatabaseSystemConfigServiceProvider extends ServiceProvider
     {
         try {
             $config = $this->app->get('config');
-            foreach (DatabaseSystemConfig::groups(true) as $group) {
-                $config->set($group, array_merge($config->get($group, []), DatabaseSystemConfig::get($group)));
+            foreach (DatabaseSystemConfig::groups() as $group) {
+                $config->set($group, array_merge($config->get($group, []), DatabaseSystemConfig::get($group, [], '')));
             }
 
         } catch (Exception $e) {

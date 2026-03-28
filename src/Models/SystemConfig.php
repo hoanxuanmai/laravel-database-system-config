@@ -3,9 +3,8 @@
 namespace HXM\DatabaseSystemConfig\Models;
 
 use \DateTime;
-use Exception;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
@@ -28,7 +27,7 @@ class SystemConfig extends Model
         $this->rawValue = $value;
     }
 
-    public function valueInstance(string $value_type = null)
+    public function valueInstance(string $value_type = null): HasOne
     {
         $instanceType = $value_type ?? $this->attributes['value_type'] ?? '';
         if (isset($this->cacheValueInstance[$instanceType])) {
@@ -98,7 +97,10 @@ class SystemConfig extends Model
         static::saved(function (self $model) {
 
             if ($model->value_type == 'null') {
-                $model->valueInstance()->delete();
+                if($model->index === 'default') {
+                   self::where('group', $model->group)->where('index', '!=', 'default')->delete();
+                } 
+                $model->valueInstance()->delete();      
                 $model->setRelation('valueInstance', null);
                 return;
             }
